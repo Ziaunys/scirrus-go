@@ -1,33 +1,27 @@
-package scirrus
+package main
 
 import (
-	"net/http"
-	"rand"
+	"fmt"
+	"flag"
+    client "github.com/Ziaunys/scirrus-go/client"
 )
 
-type ClientConf struct {
-	ClientID	string
-	MinRange	int
-	MaxRange	int
-	WorkerLimit	int
-	Clusters	int
-	Tracks		int
-}
+func main() {
+	var ver = "0.0.1"
+	c := new(client.Client)
+    c.ClientID = "6482e060ad0be4c70ee8cf6df6ff7aeb"
 
-type Collector struct {
-	
-}
 
-func track_id_range(min int, max int, n int) (ids []int) {
-	for i := 0; i < n; i++ {
-		rand_id := rand.Intn(max) % max
-		if rand_id < min {
-			rand_id := rand_id + min
-		}
-		ids = append(ids, rand_id)
-	}
-}
+	fmt.Printf("Scirrus v%s\n", ver)
 
-func get_tracks() {
-id_pool = track_id_range(
+    c.MinRange = 100
+    c.MaxRange = 50000
+    c.Clusters = *flag.Int("-k", 3, "the number of desired clusters")
+    c.WorkerLimit = *flag.Int("-w", 100, "the number of workers to use")
+    c.Tracks = *flag.Int("-n", 10, "min required comments per track")
+	flag.Parse()
+    timestamps := c.GetCommentsTs()
+    for k, v := range timestamps {
+        fmt.Printf("\nTrack ID: %v, Comment ID: %v\n", k, v)
+    }
 }
