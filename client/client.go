@@ -14,13 +14,14 @@ type Client struct {
 	ClientID	string
 	MinRange	int
 	MaxRange	int
+    MinComments  int
 	WorkerLimit	int
 	Clusters	int
 	Tracks		int
 }
 
 const (
-    sc_url = "https://api.soundcloud.com"
+    sc_url = "http://api.soundcloud.com"
 )
 
 func (c *Client) track_id_range(min int, max int, n int) (ids []int ) {
@@ -37,7 +38,7 @@ func (c *Client) track_id_range(min int, max int, n int) (ids []int ) {
         resp, err := http.Get(sc_url + "/tracks/" + strconv.Itoa(rand_id) + ".json" +
         "?client_id=" + c.ClientID)
         if err != nil {
-            log.Println("Error %v %v", resp.Request.RequestURI, err)
+            log.Println("Error %v",err)
             err.Error()
         }
         if resp.StatusCode != 200 {
@@ -50,7 +51,7 @@ func (c *Client) track_id_range(min int, max int, n int) (ids []int ) {
         }
         resp.Body.Close()
         json.Unmarshal(bod, &obj)
-        if  obj["comment_count"].(float64) <= float64(c.Tracks) {
+        if  obj["comment_count"].(float64) <= float64(c.MinComments) {
             continue
         } else {
             id_map[rand_id] = true
@@ -66,14 +67,14 @@ func (c *Client) track_id_range(min int, max int, n int) (ids []int ) {
     return ids
 }
 
-func (c *Client) GetCommentsTs() (map[int][]int) {
+func (c *Client) GetCommentsTs() (map[int][]float64) {
     var obj []map[string]interface{}
-    comms := make(map[int][]int)
-    var ts_list []int
+    comms := make(map[int][]float64)
+    var ts_list []float64
     id_pool := c.track_id_range(c.MinRange, c.MaxRange, c.Tracks)
     for _, v := range id_pool {
-        resp, err := http.Get(sc_url + "/tracks/" + strconv.Itoa(v) + ".json" +
-        "/comments" + "?client_id=" + c.ClientID)
+        resp, err := http.Get(sc_url + "/tracks/" + strconv.Itoa(v) +
+        "/comments.json" + "?client_id=" + c.ClientID)
         if err != nil {
             log.Println("Error %v %v", resp.Request.RequestURI, err)
             err.Error()
@@ -85,8 +86,8 @@ func (c *Client) GetCommentsTs() (map[int][]int) {
         }
         resp.Body.Close()
         json.Unmarshal(bod, &obj)
-        for _, v := range obj {
-            ts, ok := v["timestamp"]
+        for _, t := range obj {
+            ts, ok := t["timestamp"]
             if ok == false {
                 err := errors.New("lookup failed for timestamp.")
                 log.Println("Key error: ", err)
@@ -94,9 +95,10 @@ func (c *Client) GetCommentsTs() (map[int][]int) {
             } else if ts == nil {
                 log.Println("Warning: timestamp for comment is nil.")
             } else {
-                ts_list = append(ts_list, ts.(int))
+                ts_list = append(ts_list, ts.(float64))
             }
         }
+        log.Printf("%v", ts_list)
         comms[v] = ts_list
         ts_list = nil
     }
